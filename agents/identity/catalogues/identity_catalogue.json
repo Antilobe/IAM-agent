@@ -1,0 +1,607 @@
+{
+  "_comment": "Identity layer catalogue — deterministic gap analysis controls for auth methods, break glass, Entra hardening, PIM, and IGA. Transcribed from Deploy-*.ps1 scripts.",
+  "layers": {
+    "auth_methods": {
+      "name": "Authentication Methods",
+      "description": "Authentication method configuration from Deploy-AuthMethods.ps1",
+      "ingestor": "auth_methods",
+      "ingestor_key": null,
+      "controls": [
+        {
+          "id": "AUTH001",
+          "title": "Disable SMS Authentication",
+          "description": "SMS OTP is phishable and should be disabled in favour of FIDO2 or Microsoft Authenticator. CISA recommends disabling SMS-based MFA.",
+          "check_type": "boolean_absent",
+          "data_path": "enabled_methods",
+          "check_value": "sms",
+          "severity": "high",
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — strong multi-factor authentication",
+            "iso27001": "A.8.5 Secure Authentication",
+            "cis18": "CIS 6.3 Require MFA for Externally-Exposed Applications",
+            "cisa": "CISA Phishing-Resistant MFA guidance — deprecate SMS OTP"
+          }
+        },
+        {
+          "id": "AUTH002",
+          "title": "Disable Voice Call Authentication",
+          "description": "Voice call OTP is phishable and should be disabled in favour of phishing-resistant methods.",
+          "check_type": "boolean_absent",
+          "data_path": "enabled_methods",
+          "check_value": "voice",
+          "severity": "high",
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — strong multi-factor authentication",
+            "iso27001": "A.8.5 Secure Authentication",
+            "cis18": "CIS 6.3 Require MFA for Externally-Exposed Applications",
+            "cisa": "CISA Phishing-Resistant MFA guidance — deprecate voice OTP"
+          }
+        },
+        {
+          "id": "AUTH003",
+          "title": "Enable Microsoft Authenticator",
+          "description": "Microsoft Authenticator with number matching and location display should be enabled as the primary MFA method.",
+          "check_type": "boolean_present",
+          "data_path": "enabled_methods",
+          "check_value": "microsoftAuthenticator",
+          "severity": "high",
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — multi-factor authentication",
+            "iso27001": "A.8.5 Secure Authentication",
+            "cis18": "CIS 6.3 Require MFA for Externally-Exposed Applications",
+            "cisa": "CISA MFA guidance — push notification with number matching"
+          }
+        },
+        {
+          "id": "AUTH004",
+          "title": "Enable FIDO2 Security Keys",
+          "description": "FIDO2/passkey support should be enabled to provide phishing-resistant MFA capability.",
+          "check_type": "boolean",
+          "data_path": "fido2_enabled",
+          "expected": true,
+          "severity": "high",
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — phishing-resistant multi-factor authentication",
+            "iso27001": "A.8.5 Secure Authentication",
+            "cis18": "CIS 6.5 Require MFA for Administrative Access",
+            "cisa": "CISA Phishing-Resistant MFA — FIDO2 recommended"
+          }
+        },
+        {
+          "id": "AUTH005",
+          "title": "Enable Passkey Support",
+          "description": "Passkey (platform authenticator) support should be enabled alongside FIDO2 security keys.",
+          "check_type": "boolean",
+          "data_path": "passkey_enabled",
+          "expected": true,
+          "severity": "medium",
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — phishing-resistant multi-factor authentication",
+            "iso27001": "A.8.5 Secure Authentication",
+            "cisa": "CISA Phishing-Resistant MFA — passkey recommended"
+          }
+        },
+        {
+          "id": "AUTH006",
+          "title": "Enable Temporary Access Pass",
+          "description": "TAP should be enabled to allow secure onboarding of passwordless credentials (FIDO2, Authenticator).",
+          "check_type": "boolean_present",
+          "data_path": "enabled_methods",
+          "check_value": "temporaryAccessPass",
+          "severity": "medium",
+          "framework_controls": {
+            "iso27001": "A.8.5 Secure Authentication",
+            "cisa": "CISA passwordless onboarding guidance"
+          }
+        },
+        {
+          "id": "AUTH007",
+          "title": "Disable Software OATH Tokens",
+          "description": "Software OATH tokens (third-party TOTP apps) should be disabled when Microsoft Authenticator is the standard.",
+          "check_type": "boolean_absent",
+          "data_path": "enabled_methods",
+          "check_value": "softwareOath",
+          "severity": "low",
+          "framework_controls": {
+            "iso27001": "A.8.5 Secure Authentication",
+            "cis18": "CIS 6.3 Require MFA for Externally-Exposed Applications"
+          }
+        },
+        {
+          "id": "AUTH008",
+          "title": "No Weak Authentication Methods Enabled",
+          "description": "No weak methods (SMS, voice, email OTP) should remain enabled. This is a composite check across all weak method types.",
+          "check_type": "count_eq",
+          "data_path": "weak_methods_enabled",
+          "expected": 0,
+          "severity": "high",
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — strong authentication required",
+            "iso27001": "A.8.5 Secure Authentication",
+            "cis18": "CIS 6.3/6.5 MFA requirements",
+            "cisa": "CISA Phishing-Resistant MFA — eliminate phishable factors"
+          }
+        }
+      ]
+    },
+    "break_glass": {
+      "name": "Break Glass Accounts",
+      "description": "Emergency access account configuration from Deploy-BreakGlass.ps1",
+      "ingestor": "entra_break_glass",
+      "ingestor_key": null,
+      "controls": [
+        {
+          "id": "BRK001",
+          "title": "Break Glass Accounts Exist",
+          "description": "At least 2 emergency access accounts should exist for tenant recovery scenarios.",
+          "check_type": "threshold_gte",
+          "data_path": "summary.accounts_found",
+          "expected": 2,
+          "severity": "critical",
+          "framework_controls": {
+            "nis2": "Article 21(2)(c) — business continuity and disaster recovery",
+            "iso27001": "A.5.30 ICT Readiness for Business Continuity",
+            "cis18": "CIS 5.1 Establish and Maintain an Inventory of Accounts",
+            "cisa": "CISA Emergency Access Accounts guidance"
+          }
+        },
+        {
+          "id": "BRK002",
+          "title": "Break Glass Accounts Enabled",
+          "description": "All discovered break glass accounts must be enabled (not disabled).",
+          "check_type": "all_true",
+          "data_path": "accounts",
+          "check_field": "enabled",
+          "expected": true,
+          "severity": "critical",
+          "framework_controls": {
+            "nis2": "Article 21(2)(c) — business continuity",
+            "iso27001": "A.5.30 ICT Readiness for Business Continuity",
+            "cisa": "CISA Emergency Access — accounts must be functional"
+          }
+        },
+        {
+          "id": "BRK003",
+          "title": "Break Glass Accounts Are Cloud-Only",
+          "description": "Emergency access accounts must be cloud-only (not synced from on-premises AD) to ensure availability during hybrid identity failures.",
+          "check_type": "all_true",
+          "data_path": "accounts",
+          "check_field": "is_cloud_only",
+          "expected": true,
+          "severity": "high",
+          "framework_controls": {
+            "nis2": "Article 21(2)(c) — disaster recovery independence",
+            "iso27001": "A.5.30 ICT Readiness for Business Continuity",
+            "cisa": "CISA Emergency Access — cloud-only requirement"
+          }
+        },
+        {
+          "id": "BRK004",
+          "title": "Break Glass Accounts Have Global Admin Role",
+          "description": "Emergency access accounts must hold the Global Administrator role for full recovery capability.",
+          "check_type": "all_true",
+          "data_path": "accounts",
+          "check_field": "has_global_admin",
+          "expected": true,
+          "severity": "critical",
+          "framework_controls": {
+            "nis2": "Article 21(2)(c) — full administrative recovery capability",
+            "iso27001": "A.5.30 ICT Readiness for Business Continuity",
+            "cisa": "CISA Emergency Access — Global Admin required"
+          }
+        },
+        {
+          "id": "BRK005",
+          "title": "Break Glass Accounts In CA Exclusion Group",
+          "description": "Emergency access accounts must be members of the CA exclusion group to bypass Conditional Access during emergencies.",
+          "check_type": "all_true",
+          "data_path": "accounts",
+          "check_field": "in_ca_exclusion_group",
+          "expected": true,
+          "severity": "high",
+          "framework_controls": {
+            "nis2": "Article 21(2)(c) — emergency access assurance",
+            "iso27001": "A.5.30 ICT Readiness for Business Continuity",
+            "cisa": "CISA Emergency Access — CA exclusion required"
+          }
+        },
+        {
+          "id": "BRK006",
+          "title": "Break Glass Accounts Not MFA Registered",
+          "description": "Emergency access accounts should NOT have MFA registered — they rely on strong passwords and CA exclusion, ensuring access even when MFA infrastructure is unavailable.",
+          "check_type": "all_true",
+          "data_path": "accounts",
+          "check_field": "mfa_registered",
+          "expected": false,
+          "severity": "medium",
+          "framework_controls": {
+            "iso27001": "A.5.30 ICT Readiness for Business Continuity",
+            "cisa": "CISA Emergency Access — MFA independence"
+          }
+        },
+        {
+          "id": "BRK007",
+          "title": "Break Glass Accounts Not At Risk",
+          "description": "Emergency access accounts should have no active risk detections in Entra ID Protection.",
+          "check_type": "all_true",
+          "data_path": "accounts",
+          "check_field": "risk_level",
+          "expected": "none",
+          "severity": "critical",
+          "framework_controls": {
+            "nis2": "Article 21(2)(a) — risk assessment and incident handling",
+            "iso27001": "A.8.5 Secure Authentication",
+            "cisa": "CISA Emergency Access — monitor for compromise"
+          }
+        },
+        {
+          "id": "BRK008",
+          "title": "CA Exclusion Group Exists",
+          "description": "The dedicated CA exclusion group for break glass accounts must exist.",
+          "check_type": "boolean",
+          "data_path": "ca_exclusion_group.exists",
+          "expected": true,
+          "severity": "high",
+          "framework_controls": {
+            "nis2": "Article 21(2)(c) — business continuity infrastructure",
+            "iso27001": "A.5.30 ICT Readiness for Business Continuity"
+          }
+        }
+      ]
+    },
+    "entra_hardening": {
+      "name": "Entra ID Tenant Hardening",
+      "description": "Tenant security hardening settings from Deploy-EntraHardening.ps1",
+      "ingestor": "entra_hardening",
+      "ingestor_key": null,
+      "controls": [
+        {
+          "id": "ENT001",
+          "title": "Restrict App Registration to Admins",
+          "description": "Non-admin users should not be allowed to register applications. Uncontrolled app registrations expand the attack surface.",
+          "check_type": "boolean",
+          "data_path": "app_registration.users_can_register",
+          "expected": false,
+          "severity": "high",
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — access control",
+            "iso27001": "A.8.9 Configuration Management",
+            "cis18": "CIS 6.2 Establish an Access Revoking Process",
+            "cisa": "CISA Entra ID hardening — restrict app registrations"
+          }
+        },
+        {
+          "id": "ENT002",
+          "title": "Restrict Tenant Creation to Admins",
+          "description": "Non-admin users should not be allowed to create new Azure AD tenants to prevent shadow IT.",
+          "check_type": "boolean",
+          "data_path": "tenant_creation.users_can_create",
+          "expected": false,
+          "severity": "medium",
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — access control",
+            "iso27001": "A.8.9 Configuration Management",
+            "cisa": "CISA Entra ID hardening — restrict tenant creation"
+          }
+        },
+        {
+          "id": "ENT003",
+          "title": "Restrict User Consent to Apps",
+          "description": "User consent to applications should be restricted. Admin consent workflow should be required to prevent OAuth consent phishing.",
+          "check_type": "boolean",
+          "data_path": "admin_consent.user_consent_restricted",
+          "expected": true,
+          "severity": "high",
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — access control and consent management",
+            "iso27001": "A.8.9 Configuration Management",
+            "cis18": "CIS 6.8 Define and Maintain Role-Based Access Control",
+            "cisa": "CISA OAuth consent phishing — restrict user consent"
+          }
+        },
+        {
+          "id": "ENT004",
+          "title": "Disable LinkedIn Integration",
+          "description": "LinkedIn account connection should be disabled to prevent data leakage to external social platform.",
+          "check_type": "boolean",
+          "data_path": "linkedin.enabled",
+          "expected": false,
+          "severity": "low",
+          "framework_controls": {
+            "iso27001": "A.8.12 Data Leakage Prevention",
+            "cis18": "CIS 3.3 Configure Data Access Control Lists"
+          }
+        },
+        {
+          "id": "ENT005",
+          "title": "Restrict Guest Invitations to Admins",
+          "description": "Guest invitations should be restricted to admins and users with the Guest Inviter role. Open guest invite policies create external access risk.",
+          "check_type": "enum",
+          "data_path": "guest_invite.policy",
+          "expected_values": ["adminsAndGuestInviters", "adminsOnly", "none"],
+          "severity": "high",
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — access control for external identities",
+            "iso27001": "A.8.5 Secure Authentication",
+            "cis18": "CIS 6.8 Define and Maintain Role-Based Access Control",
+            "cisa": "CISA external identity — restrict guest invitations"
+          }
+        },
+        {
+          "id": "ENT006",
+          "title": "Restrict Admin Portal Access",
+          "description": "Non-admin users should be restricted from accessing the Entra ID admin portal.",
+          "check_type": "boolean",
+          "data_path": "portal_access.restricted_to_admins",
+          "expected": true,
+          "severity": "medium",
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — administrative access control",
+            "iso27001": "A.8.2 Privileged Access Rights",
+            "cis18": "CIS 6.5 Require MFA for Administrative Access"
+          }
+        },
+        {
+          "id": "ENT007",
+          "title": "Security Defaults Disabled (CA In Use)",
+          "description": "Security Defaults must be disabled when Conditional Access policies are deployed. Having both active causes conflicts.",
+          "check_type": "boolean",
+          "data_path": "security_defaults.enabled",
+          "expected": false,
+          "severity": "medium",
+          "framework_controls": {
+            "iso27001": "A.8.9 Configuration Management",
+            "cis18": "CIS 4.1 Establish and Maintain a Secure Configuration Process"
+          }
+        },
+        {
+          "id": "ENT008",
+          "title": "Risk-Based CA Policies Deployed",
+          "description": "Risk-based Conditional Access policies (user risk and sign-in risk) must be present. These replace the legacy Identity Protection policies.",
+          "check_type": "boolean",
+          "data_path": "risk_based_ca.verified",
+          "expected": true,
+          "severity": "high",
+          "framework_controls": {
+            "nis2": "Article 21(2)(a) — risk assessment and incident handling",
+            "iso27001": "A.8.5 Secure Authentication",
+            "cis18": "CIS 6.3 Require MFA for Externally-Exposed Applications",
+            "cisa": "CISA risk-based access — sign-in and user risk CA policies"
+          }
+        }
+      ]
+    },
+    "pim": {
+      "name": "Privileged Identity Management",
+      "description": "PIM best-practice controls. Every Global Admin must be PIM-eligible. Break-glass accounts are the only exception. Activation policies enforce MFA, justification, and approval for critical roles.",
+      "ingestor": "entra_pim",
+      "ingestor_key": null,
+      "controls": [
+        {
+          "id": "PIM-001",
+          "title": "No Standing Global Administrator Assignments",
+          "description": "Every Global Admin must be PIM-eligible, not permanently active. Maximum 2 Global Admins total. Break-glass accounts are the only exception and must be documented and monitored.",
+          "check_type": "threshold_eq",
+          "data_path": "standing_ga.count",
+          "expected": 0,
+          "severity": "critical",
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — privileged access management; standing GA is the highest-risk identity misconfiguration",
+            "iso27001": "A.8.2 Privileged Access Rights — no permanent privileged assignments",
+            "cis18": "CIS 6.5 Require MFA for Administrative Access; CIS 5.4 Restrict Administrator Privileges",
+            "cisa": "CISA privileged access — JIT for Global Admins; zero standing access",
+            "microsoft_baseline": "Microsoft Identity Secure Score: Use PIM for Global Admin"
+          }
+        },
+        {
+          "id": "PIM-002",
+          "title": "Activation Duration Capped by Role Sensitivity",
+          "description": "Global Admin, Privileged Role Admin, Privileged Authentication Admin: max 4 hours. Security Admin, Exchange Admin, SharePoint Admin, Intune Admin and similar operational roles: max 8 hours. Prevents extended sessions that expand the attack window.",
+          "check_type": "threshold_eq",
+          "data_path": "activation_duration.roles_exceeding_cap",
+          "expected": 0,
+          "severity": "high",
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — session management and privileged access time limits",
+            "iso27001": "A.8.2 Privileged Access Rights — time-bound access controls",
+            "cis18": "CIS 6.5 Require MFA for Administrative Access",
+            "cisa": "CISA privileged access — limit activation window"
+          }
+        },
+        {
+          "id": "PIM-003",
+          "title": "Approval Workflow Required for Critical Roles",
+          "description": "Roles requiring approval: Global Admin, Privileged Role Admin, Privileged Authentication Admin. Operational roles (Security Admin, Exchange Admin, SharePoint Admin, Intune Admin) require MFA + justification only, NOT approval — to avoid operational friction.",
+          "check_type": "threshold_eq",
+          "data_path": "approval_workflow.critical_roles_without_approval",
+          "expected": 0,
+          "severity": "high",
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — approval workflow for highest-privilege access",
+            "iso27001": "A.8.2 Privileged Access Rights — dual-control for critical roles",
+            "cis18": "CIS 6.5 Require MFA for Administrative Access",
+            "cisa": "CISA PIM — approval required for Global Admin activation"
+          }
+        },
+        {
+          "id": "PIM-004",
+          "title": "MFA Required on Every Activation",
+          "description": "Every PIM role activation must require MFA re-authentication at activation time. Phishing-resistant MFA (FIDO2 or WHfB) required specifically for Global Admin, Privileged Role Admin, Privileged Authentication Admin.",
+          "check_type": "threshold_eq",
+          "data_path": "activation_mfa.roles_without_mfa",
+          "expected": 0,
+          "severity": "critical",
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — multi-factor authentication on privileged activation",
+            "iso27001": "A.8.2 Privileged Access Rights; A.8.5 Secure Authentication — MFA at activation",
+            "cis18": "CIS 6.5 Require MFA for Administrative Access — at activation time, not just sign-in",
+            "cisa": "CISA Phishing-Resistant MFA — required for privileged role activation"
+          }
+        },
+        {
+          "id": "PIM-005",
+          "title": "Justification Required on Activation",
+          "description": "Every activation must require written justification. Feeds audit trails for compliance. Relevant to ISO 27001 Annex A 8.2 and NIS2 accountability requirements.",
+          "check_type": "threshold_eq",
+          "data_path": "activation_justification.roles_without_justification",
+          "expected": 0,
+          "severity": "medium",
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — accountability and audit trail for privileged access",
+            "iso27001": "A.8.2 Privileged Access Rights — justification and audit logging",
+            "cis18": "CIS 8.5 Collect Detailed Audit Logs"
+          }
+        },
+        {
+          "id": "PIM-006",
+          "title": "No Synced Accounts in Privileged Roles",
+          "description": "On-prem synced accounts (those with onPremisesImmutableId set) must not hold Global Admin, Privileged Role Admin, or Privileged Authentication Admin. On-prem compromise directly escalates to cloud admin in hybrid environments.",
+          "check_type": "threshold_eq",
+          "data_path": "hybrid_risk.synced_privileged_count",
+          "expected": 0,
+          "severity": "critical",
+          "framework_controls": {
+            "nis2": "Article 21(2)(a) — risk assessment; on-prem compromise path to cloud",
+            "iso27001": "A.8.2 Privileged Access Rights — cloud-only requirement for critical roles",
+            "cis18": "CIS 6.5 Require MFA for Administrative Access; CIS 12.2 Establish and Maintain Secure Network Architecture",
+            "cisa": "CISA hybrid identity — synced accounts must not hold cloud admin roles",
+            "microsoft_baseline": "Microsoft recommended: cloud-only accounts for privileged Entra roles"
+          }
+        },
+        {
+          "id": "PIM-007",
+          "title": "Access Reviews on Eligible Assignments",
+          "description": "PIM eligible assignments must have recurring access review configured. Critical roles (Global Admin, Privileged Role Admin, Privileged Auth Admin): minimum quarterly review. Operational roles: minimum semi-annual review.",
+          "check_type": "boolean",
+          "data_path": "pim_access_reviews.configured",
+          "expected": true,
+          "severity": "medium",
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — periodic access review for privileged roles",
+            "iso27001": "A.5.18 Access Rights — periodic access certification",
+            "cis18": "CIS 6.2 Establish an Access Revoking Process",
+            "cisa": "CISA access governance — periodic access reviews for privileged roles"
+          }
+        }
+      ]
+    },
+    "iga": {
+      "name": "Identity Governance & Administration",
+      "description": "Identity governance configuration from Deploy-IGA.ps1",
+      "ingestor": "entra_iga",
+      "ingestor_key": null,
+      "controls": [
+        {
+          "id": "IGA001",
+          "title": "Access Reviews Configured",
+          "description": "Access review campaigns should be configured for periodic access certification of privileged roles, guests, and sensitive groups.",
+          "check_type": "boolean",
+          "data_path": "access_reviews.reviews_configured",
+          "expected": true,
+          "severity": "high",
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — periodic access review",
+            "iso27001": "A.5.18 Access Rights",
+            "cis18": "CIS 6.2 Establish an Access Revoking Process",
+            "cisa": "CISA access governance — periodic access reviews"
+          }
+        },
+        {
+          "id": "IGA002",
+          "title": "No Overdue Access Reviews",
+          "description": "All access review instances should be completed on time. Overdue reviews indicate governance gaps.",
+          "check_type": "threshold_eq",
+          "data_path": "overdue_reviews.total",
+          "expected": 0,
+          "severity": "high",
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — access certification timeliness",
+            "iso27001": "A.5.18 Access Rights",
+            "cis18": "CIS 6.2 Establish an Access Revoking Process"
+          }
+        },
+        {
+          "id": "IGA003",
+          "title": "Access Review Count Sufficient",
+          "description": "Multiple access review series should exist covering privileged roles, guests, and sensitive groups.",
+          "check_type": "threshold_gte",
+          "data_path": "access_reviews.total",
+          "expected": 3,
+          "severity": "medium",
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — comprehensive access review coverage",
+            "iso27001": "A.5.18 Access Rights"
+          }
+        },
+        {
+          "id": "IGA004",
+          "title": "Lifecycle Workflows Configured",
+          "description": "Lifecycle workflows (joiner/mover/leaver) should be configured for automated identity lifecycle management.",
+          "check_type": "boolean",
+          "data_path": "lifecycle_workflows.configured",
+          "expected": true,
+          "severity": "high",
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — automated lifecycle management",
+            "iso27001": "A.6.1 Screening / A.6.5 Termination",
+            "cis18": "CIS 6.1 Establish an Access Granting Process",
+            "cisa": "CISA identity lifecycle — joiner/mover/leaver automation"
+          }
+        },
+        {
+          "id": "IGA005",
+          "title": "Lifecycle Workflow Count Sufficient",
+          "description": "At least 3 lifecycle workflows should exist covering joiner, mover, and leaver scenarios.",
+          "check_type": "threshold_gte",
+          "data_path": "lifecycle_workflows.total",
+          "expected": 3,
+          "severity": "medium",
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — complete lifecycle coverage",
+            "iso27001": "A.6.1 Screening / A.6.5 Termination"
+          }
+        },
+        {
+          "id": "IGA006",
+          "title": "Lifecycle Workflows Enabled",
+          "description": "Configured lifecycle workflows should be enabled, not just created.",
+          "check_type": "threshold_gte",
+          "data_path": "lifecycle_workflows.enabled_count",
+          "expected": 1,
+          "severity": "high",
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — active lifecycle automation",
+            "iso27001": "A.6.1 Screening / A.6.5 Termination",
+            "cisa": "CISA identity lifecycle — workflows must be active"
+          }
+        },
+        {
+          "id": "IGA007",
+          "title": "Entitlement Management Configured",
+          "description": "At least one access package should exist in entitlement management for self-service access requests.",
+          "check_type": "threshold_gte",
+          "data_path": "entitlement_mgmt.access_packages.total",
+          "expected": 1,
+          "severity": "medium",
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — structured access provisioning",
+            "iso27001": "A.5.18 Access Rights",
+            "cis18": "CIS 6.1 Establish an Access Granting Process"
+          }
+        },
+        {
+          "id": "IGA008",
+          "title": "No Pending Access Requests Backlog",
+          "description": "Pending entitlement management requests should be zero or minimal, indicating timely processing.",
+          "check_type": "threshold_eq",
+          "data_path": "entitlement_mgmt.pending_requests.total",
+          "expected": 0,
+          "severity": "low",
+          "framework_controls": {
+            "iso27001": "A.5.18 Access Rights — timely access provisioning"
+          }
+        }
+      ]
+    }
+  }
+}

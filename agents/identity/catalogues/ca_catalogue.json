@@ -1,0 +1,484 @@
+{
+  "version": "1.0",
+  "description": "Security AI Agent — Conditional Access Policy Catalogue. Defines every policy in the Foundation and Hardening layers with framework control mappings, prerequisites, and deployment guidance.",
+
+  "layers": {
+
+    "foundation": {
+      "description": "16 policies. No Intune or MDCA required. Deploy to all clients at onboarding.",
+      "deployment_order": "CAP001-004 first (no user impact, enable immediately), then CAU001-012 in report-only",
+
+      "policies": [
+        {
+          "id": "CAP001",
+          "name": "CAP001-All-BlockLegacyAuthentication-v1.0",
+          "title": "Block Legacy Authentication",
+          "description": "Blocks all legacy auth protocols (Basic Auth, NTLM, Digest) which cannot enforce MFA",
+          "target": "All users",
+          "default_state": "enabled",
+          "user_impact": "none",
+          "prerequisites": [],
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — authentication controls; legacy auth cannot support MFA requirements",
+            "iso27001": "A.8.5 Secure Authentication — legacy protocols do not support modern authentication",
+            "cis18": "CIS 4.8 Uninstall or Disable Unnecessary Services; CIS 6.3 Require MFA for externally-exposed applications",
+            "microsoft_baseline": "Microsoft Identity Secure Score: Block legacy authentication",
+            "ncsc": "NCSC Cyber Essentials: Secure configuration — disable unnecessary authentication methods",
+            "cisa": "CISA MFA guidance: disable authentication methods that cannot enforce MFA"
+          }
+        },
+        {
+          "id": "CAP002",
+          "name": "CAP002-All-BlockExchangeActiveSync-v1.0",
+          "title": "Block Exchange ActiveSync",
+          "description": "Blocks Exchange ActiveSync which bypasses modern authentication and CA policies",
+          "target": "All users",
+          "default_state": "enabled",
+          "user_impact": "none — modern mail clients unaffected",
+          "prerequisites": [],
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — authentication controls",
+            "iso27001": "A.8.5 Secure Authentication",
+            "cis18": "CIS 4.8 Disable Unnecessary Services",
+            "microsoft_baseline": "Microsoft Identity Secure Score: Block legacy authentication",
+            "ncsc": "NCSC Cyber Essentials: Secure configuration"
+          }
+        },
+        {
+          "id": "CAP003",
+          "name": "CAP003-All-BlockDeviceCodeFlow-v1.0",
+          "title": "Block Device Code Flow",
+          "description": "Blocks device code flow authentication which is commonly abused in phishing attacks",
+          "target": "All users",
+          "default_state": "enabled",
+          "user_impact": "none for standard users",
+          "prerequisites": [],
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — multi-factor authentication and privileged access",
+            "iso27001": "A.8.5 Secure Authentication",
+            "cis18": "CIS 6.3 Require MFA",
+            "microsoft_baseline": "Microsoft recommended CA policy: Block device code flow",
+            "cisa": "CISA Phishing-Resistant MFA guidance"
+          }
+        },
+        {
+          "id": "CAP004",
+          "name": "CAP004-All-BlockAuthenticationTransfer-v1.0",
+          "title": "Block Authentication Transfer",
+          "description": "Blocks authentication transfer flows used in QR code phishing attacks",
+          "target": "All users",
+          "default_state": "enabled",
+          "user_impact": "none",
+          "prerequisites": [],
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — authentication controls",
+            "iso27001": "A.8.5 Secure Authentication",
+            "microsoft_baseline": "Microsoft recommended CA policy: Block authentication transfer"
+          }
+        },
+        {
+          "id": "CAU001",
+          "name": "CAU001-All-RequireMFAAllUsers-v1.0",
+          "title": "Require MFA for All Users",
+          "description": "Requires MFA for all internal users on all applications and client types",
+          "target": "All internal users (excludes guests)",
+          "default_state": "report-only → enable after 14-day monitoring",
+          "user_impact": "high — all users must register MFA before enablement",
+          "prerequisites": ["MFA registration campaign complete", "CAP001 enabled"],
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — multi-factor authentication is explicitly required for all users accessing network and information systems",
+            "iso27001": "A.8.5 Secure Authentication — multi-factor authentication for all access to sensitive systems",
+            "cis18": "CIS 6.3 Require MFA for Externally-Exposed Applications (IG1); CIS 6.5 Require MFA for Administrative Access (IG1)",
+            "microsoft_baseline": "Microsoft Identity Secure Score: Require MFA for all users (highest impact action)",
+            "ncsc": "NCSC Cyber Essentials Plus: Multi-factor authentication for all user accounts",
+            "cisa": "CISA MFA guidance: Require MFA for all users"
+          }
+        },
+        {
+          "id": "CAU002",
+          "name": "CAU002-Admins-RequirePhishingResistantMFA-v1.0",
+          "title": "Require Phishing-Resistant MFA for Admins",
+          "description": "Requires FIDO2 or Authenticator passkey for all privileged role holders — stronger than standard MFA",
+          "target": "Global Admin, Security Admin, SharePoint Admin, Exchange Admin, CA Admin, User Admin, Privileged Role Admin, Privileged Auth Admin",
+          "default_state": "report-only → enable after phishing-resistant MFA rollout",
+          "user_impact": "admins must register FIDO2 key or passkey",
+          "prerequisites": ["FIDO2 keys or Microsoft Authenticator passkeys deployed to admins"],
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — explicitly requires MFA for privileged access; phishing-resistant preferred for essential entities",
+            "iso27001": "A.8.2 Privileged Access Rights — enhanced controls for privileged accounts; A.8.5 Secure Authentication",
+            "cis18": "CIS 6.5 Require MFA for Administrative Access (IG1) — highest priority control",
+            "microsoft_baseline": "Microsoft Identity Secure Score: Require phishing-resistant MFA for admins",
+            "ncsc": "NCSC guidance on admin account security: strongest available MFA for privileged accounts",
+            "cisa": "CISA Phishing-Resistant MFA: required for privileged users"
+          }
+        },
+        {
+          "id": "CAU003",
+          "name": "CAU003-All-RequireMFAAdminPortals-v1.0",
+          "title": "Require MFA for Admin Portals",
+          "description": "Requires MFA for all users accessing Azure portal, Entra admin centre, and Exchange admin",
+          "target": "All users accessing admin portals",
+          "default_state": "report-only",
+          "user_impact": "medium — affects any user accessing management portals",
+          "prerequisites": ["MFA registration for affected users"],
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — MFA for privileged access to management systems",
+            "iso27001": "A.8.2 Privileged Access Rights; A.5.15 Access Control",
+            "cis18": "CIS 6.5 Require MFA for Administrative Access",
+            "microsoft_baseline": "Microsoft recommended: MFA for all admin portal access"
+          }
+        },
+        {
+          "id": "CAU004",
+          "name": "CAU004-Guests-RequireMFA-v1.0",
+          "title": "Require MFA for Guests",
+          "description": "Requires MFA for all B2B guest and external users",
+          "target": "All guest and external users",
+          "default_state": "report-only",
+          "user_impact": "medium — guests must register MFA",
+          "prerequisites": [],
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — MFA applies to all users including external",
+            "iso27001": "A.5.15 Access Control; A.5.18 Access Rights — third party access controls",
+            "cis18": "CIS 6.3 Require MFA for External Access",
+            "microsoft_baseline": "Microsoft recommended: MFA for all guest users"
+          }
+        },
+        {
+          "id": "CAU005",
+          "name": "CAU005-All-BlockHighRiskSignIns-v1.0",
+          "title": "Block High Risk Sign-ins",
+          "description": "Blocks sign-ins detected as high risk by Entra ID Protection",
+          "target": "All users",
+          "default_state": "report-only",
+          "user_impact": "low — only affects high-risk sign-in attempts",
+          "prerequisites": ["Entra ID P2 licence"],
+          "framework_controls": {
+            "nis2": "Article 21(2)(b) — incident handling; Article 21(2)(i) — authentication controls",
+            "iso27001": "A.8.16 Monitoring Activities; A.5.25 Assessment of Information Security Events",
+            "cis18": "CIS 6.3 Require MFA; CIS 13.4 Perform Traffic Filtering"
+          }
+        },
+        {
+          "id": "CAU006",
+          "name": "CAU006-All-BlockHighRiskUsers-v1.0",
+          "title": "Block High Risk Users",
+          "description": "Blocks sign-ins from users flagged as high risk by Entra ID Protection",
+          "target": "All users",
+          "default_state": "report-only",
+          "user_impact": "low — only blocks compromised accounts",
+          "prerequisites": ["Entra ID P2 licence"],
+          "framework_controls": {
+            "nis2": "Article 21(2)(b) — incident handling and containment",
+            "iso27001": "A.8.16 Monitoring Activities; A.5.25 Assessment of Information Security Events",
+            "cis18": "CIS 6.3 Require MFA; CIS 5.3 Disable Dormant Accounts"
+          }
+        },
+        {
+          "id": "CAU007",
+          "name": "CAU007-All-MediumRiskRequireMFA-v1.0",
+          "title": "Medium Risk Sign-in Requires MFA",
+          "description": "Requires MFA step-up for medium risk sign-ins rather than blocking",
+          "target": "All users",
+          "default_state": "report-only",
+          "user_impact": "low — step-up MFA for suspicious sign-ins",
+          "prerequisites": ["Entra ID P2 licence", "CAU001 enabled"],
+          "framework_controls": {
+            "nis2": "Article 21(2)(b) — incident handling; Article 21(2)(i) — risk-based authentication",
+            "iso27001": "A.8.16 Monitoring Activities",
+            "cis18": "CIS 6.3 Require MFA"
+          }
+        },
+        {
+          "id": "CAU008",
+          "name": "CAU008-Admins-SignInFrequency4Hours-v1.0",
+          "title": "Admin Session Timeout — 4 Hours",
+          "description": "Forces admin re-authentication every 4 hours to limit session hijacking exposure",
+          "target": "All privileged role holders",
+          "default_state": "report-only",
+          "user_impact": "medium — admins re-authenticate every 4 hours in browser",
+          "prerequisites": [],
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — privileged access controls and session management",
+            "iso27001": "A.8.2 Privileged Access Rights; A.5.15 Access Control",
+            "cis18": "CIS 6.5 Require MFA for Administrative Access",
+            "microsoft_baseline": "Microsoft recommended: admin session lifetime controls",
+            "ncsc": "NCSC admin device guidance: session timeout requirements"
+          }
+        },
+        {
+          "id": "CAU009",
+          "name": "CAU009-Admins-DisableBrowserPersistence-v1.0",
+          "title": "Disable Browser Persistence for Admins",
+          "description": "Prevents browser from saving admin sessions — forces re-auth on browser restart",
+          "target": "All privileged role holders",
+          "default_state": "report-only",
+          "user_impact": "medium — admins must sign in each browser session",
+          "prerequisites": [],
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — privileged access session controls",
+            "iso27001": "A.8.2 Privileged Access Rights",
+            "cis18": "CIS 6.5 Require MFA for Administrative Access",
+            "microsoft_baseline": "Microsoft recommended: disable browser persistence for admins"
+          }
+        },
+        {
+          "id": "CAU010",
+          "name": "CAU010-All-RequireMFADeviceJoinRegistration-v1.0",
+          "title": "Require MFA for Device Join/Registration",
+          "description": "Requires MFA when users join or register devices — prevents unauthorised device registration",
+          "target": "All users registering devices",
+          "default_state": "report-only",
+          "user_impact": "low — only during device registration",
+          "prerequisites": [],
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — authentication controls for device access",
+            "iso27001": "A.5.15 Access Control; A.8.1 User Endpoint Devices",
+            "cis18": "CIS 1.1 Establish and Maintain Detailed Inventory of Enterprise Assets"
+          }
+        },
+        {
+          "id": "CAU011",
+          "name": "CAU011-All-RequirePhishingResistantMFAAllUsers-v1.0",
+          "title": "Require Phishing-Resistant MFA — All Users (Future State)",
+          "description": "Long-term target state — requires FIDO2/passkey for all users. Deploys report-only until passkey rollout complete. Eventually replaces CAU001.",
+          "target": "All internal users",
+          "default_state": "report-only — enable only after full passkey rollout",
+          "user_impact": "high — all users must register FIDO2 or passkey",
+          "prerequisites": ["Full FIDO2/passkey rollout to all users"],
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — phishing-resistant MFA is the gold standard",
+            "iso27001": "A.8.5 Secure Authentication",
+            "cis18": "CIS 6.3 Require MFA",
+            "cisa": "CISA Phishing-Resistant MFA: target state for all users"
+          }
+        },
+        {
+          "id": "CAU012",
+          "name": "CAU012-All-TAPSecurityInfoRegistration-v1.0",
+          "title": "Restrict Security Info Registration via TAP",
+          "description": "Requires MFA to register security information — prevents attackers registering their own MFA methods on compromised accounts",
+          "target": "All users registering security info",
+          "default_state": "report-only",
+          "user_impact": "low — only during initial MFA setup",
+          "prerequisites": ["Temporary Access Pass (TAP) configured in tenant"],
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — authentication controls",
+            "iso27001": "A.5.17 Authentication Information — managing authentication credentials securely",
+            "cis18": "CIS 6.5 Require MFA for Administrative Access",
+            "microsoft_baseline": "Microsoft recommended: secure MFA registration with TAP"
+          }
+        }
+      ]
+    },
+
+    "hardening": {
+      "description": "13 policies across 3 sub-layers. Requires Intune and/or Named Locations and/or MDCA.",
+      "deployment_order": "Device compliance (CAD) → Location (CAL) → MDCA routing (CAU014-015)",
+
+      "policies": [
+        {
+          "id": "CAD001",
+          "name": "CAD001-All-RequireCompliantDeviceWindows-v1.0",
+          "title": "Require Compliant Windows Device",
+          "description": "Requires Intune-compliant Windows device for Office 365 access",
+          "target": "All users on Windows devices",
+          "default_state": "report-only",
+          "user_impact": "high — non-compliant devices lose Office 365 access",
+          "prerequisites": ["Microsoft Intune", "Windows compliance policy configured"],
+          "framework_controls": {
+            "nis2": "Article 21(2)(e) — supply chain and endpoint security",
+            "iso27001": "A.8.1 User Endpoint Devices; A.8.7 Protection Against Malware",
+            "cis18": "CIS 4.1 Establish and Maintain Secure Configuration Process; CIS 4.4 Implement and Manage Firewall Software",
+            "microsoft_baseline": "Microsoft recommended: device compliance for data access",
+            "ncsc": "NCSC Cyber Essentials: Secure configuration of all devices"
+          }
+        },
+        {
+          "id": "CAD002",
+          "name": "CAD002-All-RequireCompliantDeviceMacOS-v1.0",
+          "title": "Require Compliant macOS Device",
+          "description": "Requires Intune-compliant macOS device for Office 365 access",
+          "target": "All users on macOS devices",
+          "default_state": "report-only",
+          "user_impact": "high",
+          "prerequisites": ["Microsoft Intune", "macOS compliance policy configured"],
+          "framework_controls": {
+            "nis2": "Article 21(2)(e) — endpoint security",
+            "iso27001": "A.8.1 User Endpoint Devices",
+            "cis18": "CIS 4.1 Secure Configuration",
+            "ncsc": "NCSC Cyber Essentials: Secure configuration"
+          }
+        },
+        {
+          "id": "CAD003",
+          "name": "CAD003-All-RequireCompliantOrAppProtectedMobile-v1.0",
+          "title": "Require Compliant or App-Protected Mobile Device",
+          "description": "Requires compliant device OR Intune app protection policy on iOS/Android",
+          "target": "All users on mobile devices",
+          "default_state": "report-only",
+          "user_impact": "medium — personal devices need Intune Company Portal or MAM",
+          "prerequisites": ["Microsoft Intune", "App Protection Policies configured"],
+          "framework_controls": {
+            "nis2": "Article 21(2)(e) — endpoint security including mobile",
+            "iso27001": "A.8.1 User Endpoint Devices",
+            "cis18": "CIS 4.1 Secure Configuration"
+          }
+        },
+        {
+          "id": "CAD004",
+          "name": "CAD004-All-BlockUnsupportedDevicePlatforms-v1.0",
+          "title": "Block Unsupported Device Platforms",
+          "description": "Blocks access from Linux, ChromeOS, and other unmanaged platforms",
+          "target": "All users on unsupported platforms",
+          "default_state": "report-only",
+          "user_impact": "high for Linux/ChromeOS users",
+          "prerequisites": [],
+          "framework_controls": {
+            "nis2": "Article 21(2)(e) — endpoint security",
+            "iso27001": "A.8.1 User Endpoint Devices",
+            "cis18": "CIS 4.1 Secure Configuration"
+          }
+        },
+        {
+          "id": "CAD005",
+          "name": "CAD005-All-BlockDownloadsNonCompliantDevice-v1.0",
+          "title": "Block Downloads on Non-Compliant Devices",
+          "description": "Blocks file downloads via browser on non-compliant devices using MDCA session controls",
+          "target": "All users on non-compliant devices",
+          "default_state": "report-only",
+          "user_impact": "medium — read-only browser access from unmanaged devices",
+          "prerequisites": ["Microsoft Defender for Cloud Apps (MDCA)"],
+          "framework_controls": {
+            "nis2": "Article 21(2)(h) — data protection",
+            "iso27001": "A.8.12 Data Leakage Prevention",
+            "cis18": "CIS 3.6 Encrypt Data on End-User Devices"
+          }
+        },
+        {
+          "id": "CAD006",
+          "name": "CAD006-All-SignInFrequencyNonCompliantDevice-v1.0",
+          "title": "Session Timeout on Non-Compliant Devices",
+          "description": "Enforces 1-hour session timeout for access from non-compliant devices",
+          "target": "All users on non-compliant devices",
+          "default_state": "report-only",
+          "user_impact": "medium — re-authentication required hourly from unmanaged devices",
+          "prerequisites": [],
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — session management",
+            "iso27001": "A.8.1 User Endpoint Devices; A.5.15 Access Control",
+            "cis18": "CIS 4.1 Secure Configuration"
+          }
+        },
+        {
+          "id": "CAD007",
+          "name": "CAD007-All-DisableBrowserPersistenceNonCompliant-v1.0",
+          "title": "Disable Browser Persistence on Non-Compliant Devices",
+          "description": "Prevents saving sessions on non-compliant devices",
+          "target": "All users on non-compliant devices",
+          "default_state": "report-only",
+          "user_impact": "low",
+          "prerequisites": [],
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — session controls",
+            "iso27001": "A.8.1 User Endpoint Devices",
+            "cis18": "CIS 4.1 Secure Configuration"
+          }
+        },
+        {
+          "id": "CAL001",
+          "name": "CAL001-All-BlockHighRiskCountries-v1.0",
+          "title": "Block High Risk Countries",
+          "description": "Blocks sign-ins from countries the organisation does not operate in",
+          "target": "All users",
+          "default_state": "report-only",
+          "user_impact": "medium — travellers to blocked countries affected",
+          "prerequisites": ["Named Location: blocked countries list configured"],
+          "framework_controls": {
+            "nis2": "Article 21(2)(b) — threat intelligence and incident prevention",
+            "iso27001": "A.5.15 Access Control; A.8.16 Monitoring Activities",
+            "cis18": "CIS 13.4 Perform Traffic Filtering",
+            "microsoft_baseline": "Microsoft recommended: geo-blocking for unused regions"
+          }
+        },
+        {
+          "id": "CAL002",
+          "name": "CAL002-Admins-BlockNonTrustedLocations-v1.0",
+          "title": "Restrict Admin Access to Trusted Locations",
+          "description": "Blocks admin portal access from outside trusted office IP ranges",
+          "target": "All privileged role holders",
+          "default_state": "report-only",
+          "user_impact": "high — admins cannot use portals from home without VPN/trusted location",
+          "prerequisites": ["Named Location: trusted office IPs configured"],
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — privileged access controls and network segmentation",
+            "iso27001": "A.8.2 Privileged Access Rights; A.5.15 Access Control",
+            "cis18": "CIS 6.5 Require MFA for Administrative Access; CIS 12.2 Establish and Maintain Secure Network Architecture",
+            "ncsc": "NCSC admin guidance: restrict admin access to known-good locations"
+          }
+        },
+        {
+          "id": "CAL003",
+          "name": "CAL003-ServiceAccounts-RestrictToTrustedLocations-v1.0",
+          "title": "Restrict Service Accounts to Trusted Locations",
+          "description": "Locks service accounts to trusted IP ranges — service accounts should never sign in from unknown locations",
+          "target": "Service account group",
+          "default_state": "report-only",
+          "user_impact": "none for human users",
+          "prerequisites": ["Named Location: trusted IPs", "SEC-ServiceAccounts group populated"],
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — access control for automated accounts",
+            "iso27001": "A.5.16 Identity Management; A.5.18 Access Rights — service account controls",
+            "cis18": "CIS 5.6 Centralise Account Management"
+          }
+        },
+        {
+          "id": "CAL004",
+          "name": "CAL004-All-RestrictMFARegistrationToTrustedLocations-v1.0",
+          "title": "Restrict MFA Registration to Trusted Locations",
+          "description": "Users can only register MFA methods from trusted office locations — prevents attackers registering their own MFA after initial compromise",
+          "target": "All users",
+          "default_state": "report-only",
+          "user_impact": "medium — new employees must register MFA from office",
+          "prerequisites": ["Named Location: trusted office IPs", "CAU012 deployed"],
+          "framework_controls": {
+            "nis2": "Article 21(2)(i) — authentication registration controls",
+            "iso27001": "A.5.17 Authentication Information",
+            "cis18": "CIS 6.5 Require MFA for Administrative Access",
+            "microsoft_baseline": "Microsoft recommended: restrict MFA registration to trusted locations"
+          }
+        },
+        {
+          "id": "CAU014",
+          "name": "CAU014-All-RouteThroughMDCANonCompliant-v1.0",
+          "title": "Route Non-Compliant Device Traffic Through MDCA",
+          "description": "Routes browser sessions from non-compliant devices through MDCA for DLP inspection and control",
+          "target": "All users on non-compliant devices",
+          "default_state": "report-only",
+          "user_impact": "low — transparent to users, may affect performance slightly",
+          "prerequisites": ["Microsoft Defender for Cloud Apps (MDCA)", "MDCA tenant connected"],
+          "framework_controls": {
+            "nis2": "Article 21(2)(h) — data protection; Article 21(2)(f) — network security",
+            "iso27001": "A.8.12 Data Leakage Prevention; A.8.16 Monitoring Activities",
+            "cis18": "CIS 3.6 Encrypt Data; CIS 13.4 Perform Traffic Filtering"
+          }
+        },
+        {
+          "id": "CAU015",
+          "name": "CAU015-All-RouteThroughMDCACompliant-v1.0",
+          "title": "Route Compliant Device Traffic Through MDCA",
+          "description": "Routes all browser sessions (including compliant devices) through MDCA for full DLP coverage",
+          "target": "All users",
+          "default_state": "report-only",
+          "user_impact": "low",
+          "prerequisites": ["Microsoft Defender for Cloud Apps (MDCA)"],
+          "framework_controls": {
+            "nis2": "Article 21(2)(h) — data protection",
+            "iso27001": "A.8.12 Data Leakage Prevention",
+            "cis18": "CIS 3.6 Encrypt Data; CIS 13.4 Traffic Filtering"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,35 @@
+tenant_id: "${AZURE_TENANT_ID}"
+
+graph_api:
+  base_url: "https://graph.microsoft.com/v1.0"
+  beta_url: "https://graph.microsoft.com/beta"
+  timeout_seconds: 30
+  max_retries: 3
+  page_size: 999
+
+auth:
+  client_id: "${AZURE_CLIENT_ID}"
+  client_secret: "${AZURE_CLIENT_SECRET}"
+  authority: "https://login.microsoftonline.com/${AZURE_TENANT_ID}"
+  scopes:
+    - "https://graph.microsoft.com/.default"
+
+llm:
+  backend: "anthropic"            # "anthropic" | "local"
+  model: "claude-opus-4-20250514"
+  max_tokens: 4096
+  temperature: 0.2
+
+storage:
+  backend: "sqlite"
+  sqlite_path: "./data/identity_agent.db"
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s | %(name)s | %(levelname)s | %(message)s"
+
+assessment:
+  sign_in_lookback_days: 7
+  risky_users_min_level: "medium"
+  ca_policy_catalogue: "catalogues/ca_catalogue.json"
+  identity_catalogue: "catalogues/identity_catalogue.json"
